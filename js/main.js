@@ -2,6 +2,11 @@ var platforms = null;
 var coins = null;
 var player = null;
 
+var keyW = null;
+var keyA = null;
+var keyS = null;
+var keyD = null;
+
 var config = {
     type: Phaser.AUTO,
     width: 960,
@@ -85,20 +90,32 @@ function create() {
         jump: this.sound.add('sfx:jump'),
         coin: this.sound.add('sfx:coin')
     };
+
+    keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+    keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 }
 
 function update() {
     cursors = this.input.keyboard.createCursorKeys();
 
-    if (cursors.left.isDown)
+    if (cursors.left.isDown || keyA.isDown)
     {
         player.setVelocityX(-140);
 
         player.anims.play('left', true);
     }
-    else if (cursors.right.isDown)
+    else if (cursors.right.isDown || keyD.isDown)
     {
         player.setVelocityX(140);
+
+        player.anims.play('right', true);
+    }
+    // Player can fall slightly quicker if they want to
+    else if (cursors.down.isDown || keyS.isDown)
+    {
+        player.setVelocityY(player.body.velocity.y += 5);
 
         player.anims.play('right', true);
     }
@@ -109,12 +126,13 @@ function update() {
         player.anims.play('turn');
     }
 
-    if ((cursors.up.isDown || cursors.space.isDown) && player.body.touching.down && this.canStartJump)
+    // Player can jump with up arrow / space bar / W
+    if ((cursors.up.isDown || cursors.space.isDown || keyW.isDown) && player.body.touching.down && this.canStartJump)
     {
         player.setVelocityY(-330);
         this.canStartJump = false;
         this.sfx.jump.play();
-    } else if (!cursors.up.isDown && !cursors.space.isDown) {
+    } else if (!cursors.up.isDown && !cursors.space.isDown && !keyW.isDown) {
         this.canStartJump = true;
     }
 }
@@ -133,7 +151,6 @@ function loadLevel (data, game) {
 };
 
 function spawnPlatform (platform, game) {
-    //game.add.sprite(platform.x, platform.y, platform.image);
     platforms.create(platform.x, platform.y, platform.image).setOrigin(0, 0).refreshBody();
 }
 
@@ -143,17 +160,10 @@ function spawnCharacters (data, game) {
     game.physics.add.collider(player, platforms);
 
     player.setCollideWorldBounds(true);
-
-    //game.add.existing(player);
-
-    // game.hero = new Hero(game, data.hero.x, data.hero.y);
-    // game.add.existing(game.hero);
-    // game.physics.add.existing(game.hero);
 }
 
 function spawnCoin (coin) {
     coin = coins.create(coin.x, coin.y, 'coin').setOrigin(0.5, 0.5).refreshBody();
-    coin.setBounceY(Phaser.Math.FloatBetween(0.4, 0.6));
     coin.setCollideWorldBounds(true);
     coin.body.allowGravity = false;
 }
