@@ -1,4 +1,5 @@
 var platforms = null;
+var player = null;
 
 var config = {
     type: Phaser.AUTO,
@@ -7,15 +8,15 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 400 },
             debug: false
         }
     },
     scene: {
         preload: preload,
         create: create,
-        test: loadLevel
-        //update: update
+        test: loadLevel,
+        update: update
     }
 };
 
@@ -27,6 +28,21 @@ function preload() {
         'images/phaser.io/dude.png',
         { frameWidth: 32, frameHeight: 48 }
     );
+
+    this.load.image('ground', 'images/ground.png');
+    this.load.image('grass:8x1', 'images/grass_8x1.png');
+    this.load.image('grass:6x1', 'images/grass_6x1.png');
+    this.load.image('grass:4x1', 'images/grass_4x1.png');
+    this.load.image('grass:2x1', 'images/grass_2x1.png');
+    this.load.image('grass:1x1', 'images/grass_1x1.png');
+
+    this.load.json('level:1', 'data/level01.json');
+}
+
+function create() {
+    this.add.image(0, 0, 'background').setOrigin(0, 0);
+
+    loadLevel(this.cache.json.get('level:1'), this);
 
     this.anims.create({
         key: 'left',
@@ -48,20 +64,38 @@ function preload() {
         repeat: -1
     });
 
-    this.load.image('ground', 'images/ground.png');
-    this.load.image('grass:8x1', 'images/grass_8x1.png');
-    this.load.image('grass:6x1', 'images/grass_6x1.png');
-    this.load.image('grass:4x1', 'images/grass_4x1.png');
-    this.load.image('grass:2x1', 'images/grass_2x1.png');
-    this.load.image('grass:1x1', 'images/grass_1x1.png');
-
-    this.load.json('level:1', 'data/level01.json');
+    this.canStartJump = true;
 }
 
-function create() {
-    this.add.image(0, 0, 'background').setOrigin(0, 0);
+function update() {
+    cursors = this.input.keyboard.createCursorKeys();
 
-    loadLevel(this.cache.json.get('level:1'), this);
+    if (cursors.left.isDown)
+    {
+        player.setVelocityX(-140);
+
+        player.anims.play('left', true);
+    }
+    else if (cursors.right.isDown)
+    {
+        player.setVelocityX(140);
+
+        player.anims.play('right', true);
+    }
+    else
+    {
+        player.setVelocityX(0);
+
+        player.anims.play('turn');
+    }
+
+    if (cursors.up.isDown && player.body.touching.down && this.canStartJump)
+    {
+        player.setVelocityY(-330);
+        this.canStartJump = false;
+    } else if (!cursors.up.isDown) {
+        this.canStartJump = true;
+    }
 }
 
 function loadLevel (data, game) {
