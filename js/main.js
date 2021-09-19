@@ -15,7 +15,6 @@ var config = {
     scene: {
         preload: preload,
         create: create,
-        test: loadLevel,
         update: update
     }
 };
@@ -35,6 +34,8 @@ function preload() {
     this.load.image('grass:4x1', 'images/grass_4x1.png');
     this.load.image('grass:2x1', 'images/grass_2x1.png');
     this.load.image('grass:1x1', 'images/grass_1x1.png');
+
+    this.load.audio('sfx:jump', 'audio/jump.wav');
 
     this.load.json('level:1', 'data/level01.json');
 }
@@ -65,6 +66,10 @@ function create() {
     });
 
     this.canStartJump = true;
+
+    this.sfx = {
+        jump: this.sound.add('sfx:jump')
+    };
 }
 
 function update() {
@@ -89,11 +94,12 @@ function update() {
         player.anims.play('turn');
     }
 
-    if (cursors.up.isDown && player.body.touching.down && this.canStartJump)
+    if ((cursors.up.isDown || cursors.space.isDown) && player.body.touching.down && this.canStartJump)
     {
         player.setVelocityY(-330);
         this.canStartJump = false;
-    } else if (!cursors.up.isDown) {
+        this.sfx.jump.play();
+    } else if (!cursors.up.isDown && !cursors.space.isDown) {
         this.canStartJump = true;
     }
 }
