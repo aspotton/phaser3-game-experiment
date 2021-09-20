@@ -1,3 +1,4 @@
+var game = null;
 var platforms = null;
 var coins = null;
 var player = null;
@@ -18,12 +19,31 @@ var config = {
             debug: false
         }
     },
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     scene: {
         preload: preload,
         create: create,
         update: update
     }
 };
+
+function getScale(width, height) {
+    let scaleWidth = window.innerWidth / width;
+    let scaleHeight = window.innerHeight / height;
+    let scale = Math.max(scaleWidth, scaleHeight);
+    return scale;
+}
+
+function setupCanvas(game) {
+    var height = window.innerHeight;
+    var width = window.innerWidth;
+
+    game.scene.scale.resize(width, height);
+    game.scene.scale.setGameSize(width, height);
+}
 
 // load game assets here
 function preload() {
@@ -175,6 +195,9 @@ function collectCoin (player, coin) {
 
 window.onload = function () {
     game = new Phaser.Game(config);
+
+    window.addEventListener('resize', setupCanvas);
+    setupCanvas();
 };
 
 class Hero extends Phaser.Physics.Arcade.Sprite {
