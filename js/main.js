@@ -133,11 +133,9 @@ function update() {
         player.anims.play('right', true);
     }
     // Player can fall slightly quicker if they want to
-    else if (cursors.down.isDown || keyS.isDown)
+    else if ((cursors.down.isDown || keyS.isDown) && !player.body.touching.down)
     {
         player.setVelocityY(player.body.velocity.y += 5);
-
-        player.anims.play('right', true);
     }
     else
     {
