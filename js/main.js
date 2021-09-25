@@ -1,6 +1,7 @@
 var game = null;
 var platforms = null;
 var coins = null;
+var enemies = null;
 var player = null;
 
 var keyW = null;
@@ -30,19 +31,14 @@ var config = {
     }
 };
 
-function getScale(width, height) {
-    let scaleWidth = window.innerWidth / width;
-    let scaleHeight = window.innerHeight / height;
-    let scale = Math.max(scaleWidth, scaleHeight);
-    return scale;
-}
-
-function setupCanvas(game) {
+function setupCanvas() {
     var height = window.innerHeight;
     var width = window.innerWidth;
 
-    game.scene.scale.resize(width, height);
-    game.scene.scale.setGameSize(width, height);
+    if (game.scene.scale) {
+        game.scene.scale.resize(width, height);
+        game.scene.scale.setGameSize(width, height);
+    }
 }
 
 // load game assets here
@@ -57,6 +53,11 @@ function preload() {
     this.load.spritesheet('coin',
         'images/coin_animated.png',
         { frameWidth: 22, frameHeight: 22 }
+    );
+
+    this.load.spritesheet('squishableEnemy',
+        'images/red_enemy.png',
+        { frameWidth: 16, frameHeight: 13 }
     );
 
     this.load.image('ground', 'images/ground.png');
@@ -99,6 +100,20 @@ function create() {
         key: 'coinSpin',
         frames: this.anims.generateFrameNumbers('coin', { start: 0, end: 3 }),
         frameRate: 5,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'squishableEnemyLeft',
+        frames: this.anims.generateFrameNumbers('squishableEnemy', { start: 0, end: 5 }),
+        frameRate: 6,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'squishableEnemyRight',
+        frames: this.anims.generateFrameNumbers('squishableEnemy', { start: 6, end: 11 }),
+        frameRate: 6,
         repeat: -1
     });
 
@@ -153,30 +168,82 @@ function update() {
     } else if (!cursors.up.isDown && !cursors.space.isDown && !keyW.isDown) {
         this.canStartJump = true;
     }
+
+    enemies.children.each(function(enemy) {
+        if (enemy.body.wait > 0) {
+            enemy.body.wait -= 1;
+            return;
+        }
+
+        overlapped = this.physics.overlapRect(
+            enemy.x,
+            enemy.y,
+            enemy.width - enemy.width/1.5,
+            enemy.height + 2
+        );
+
+        ground = 0;
+        overlapped.forEach(function(body) {
+            entity = body.gameObject;
+
+            if (entity.texture.key.includes('grass') || entity.texture.key.includes('ground')) {
+                ground++;
+            }
+        });
+
+        if (ground == 0 && enemy.body.touching.down) {
+            enemy.body.velocity.x *= -1;
+            enemy.body.wait = 3;
+
+            if (enemy.body.velocity.x > 0)
+                enemy.anims.play('squishableEnemyRight');
+            else
+                enemy.anims.play('squishableEnemyLeft');
+        }
+    }, this);
 }
 
 function loadLevel (data, game) {
-    platforms = game.physics.add.staticGroup();
+    platforms = game.physics.add.group();
     data.platforms.forEach(spawnPlatform, game);
 
-    spawnCharacters({hero: data.hero}, game);
+    enemies = game.physics.add.group();
+    data.spiders.forEach(spawnSquishableEnemy, game);
+    enemies.playAnimation('squishableEnemyRight');
+
+    spawnCharacters({hero: data.hero, squishableEnemies: data.spiders}, game);
 
     coins = game.physics.add.group();
     data.coins.forEach(spawnCoin, game);
     coins.playAnimation('coinSpin');
     game.physics.add.overlap(player, coins, collectCoin, null, game);
     game.physics.add.collider(coins, platforms);
+
+    game.physics.world.on('worldbounds', function (body, up, down, left, right) {
+        entity = body.gameObject;
+
+        if (left) {
+            body.velocity.x = 50;
+            entity.anims.play('squishableEnemyRight');
+        }
+
+        if (right) {
+            body.velocity.x = -50;
+            entity.anims.play('squishableEnemyLeft');
+        }
+    });
 };
 
 function spawnPlatform (platform, game) {
-    platforms.create(platform.x, platform.y, platform.image).setOrigin(0, 0).refreshBody();
+    platform = platforms.create(platform.x, platform.y, platform.image).setOrigin(0, 0).refreshBody();
+    platform.setImmovable(true);
+    platform.body.allowGravity = false;
 }
 
 function spawnCharacters (data, game) {
     // spawn hero
     player = game.physics.add.sprite(data.hero.x, data.hero.y, 'hero');
     game.physics.add.collider(player, platforms);
-
     player.setCollideWorldBounds(true);
 }
 
@@ -184,6 +251,16 @@ function spawnCoin (coin) {
     coin = coins.create(coin.x, coin.y, 'coin').setOrigin(0.5, 0.5).refreshBody();
     coin.setCollideWorldBounds(true);
     coin.body.allowGravity = false;
+}
+
+function spawnSquishableEnemy(enemy) {
+    enemy = enemies.create(enemy.x, enemy.y, 'squishableEnemy').setScale(2.25).setOrigin(0.5, 0.5).refreshBody();
+    enemy.setCollideWorldBounds(true);
+    enemy.body.onWorldBounds = true;
+    enemy.body.velocity.x = 50;
+    enemy.body.previousY = enemy.body.y;
+    enemy.body.wait = 0;
+    this.physics.add.collider(enemy, platforms);
 }
 
 function collectCoin (player, coin) {
