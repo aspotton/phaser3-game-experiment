@@ -9,6 +9,11 @@ var keyA = null;
 var keyS = null;
 var keyD = null;
 
+var hud = null;
+var coinFont = null;
+var coinPickupCount = 0;
+var scoreText;
+
 var config = {
     type: Phaser.AUTO,
     width: 960,
@@ -44,6 +49,8 @@ function setupCanvas() {
 // load game assets here
 function preload() {
     this.load.image('background', 'images/background.png');
+    this.load.image('icon:coin', 'images/coin_icon.png');
+    this.load.image('font:numbers', 'images/numbers.png');
 
     this.load.spritesheet('hero',
         'images/phaser.io/dude.png',
@@ -232,6 +239,8 @@ function loadLevel (data, game) {
             entity.anims.play('squishableEnemyLeft');
         }
     });
+
+    createHud(game);
 };
 
 function spawnPlatform (platform, game) {
@@ -266,6 +275,21 @@ function spawnSquishableEnemy(enemy) {
 function collectCoin (player, coin) {
     this.sfx.coin.play();
     coin.disableBody(true, true);
+    coinPickupCount++;
+}
+
+function createHud (game) {
+    const NUMBERS_STR = '0123456789X ';
+    coinFont = game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
+
+    hud = game.add.group();
+    hud.create(0, 0, 'icon:coin').setOrigin(0, 0);
+    hud.setXY(10, 10);
+
+    coinScoreImg = game.make.image(coinIcon.x + coinIcon.width,
+        coinIcon.height / 2, this.coinFont);
+    coinScoreImg.setOrigin(0, 0.5);
+    hud.add(coinScoreImg);
 }
 
 window.onload = function () {
